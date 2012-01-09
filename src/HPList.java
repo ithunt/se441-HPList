@@ -13,6 +13,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @ThreadSafe
 public class HPList {
+    
+    public static final String DUMMY_NODE_VALUE = "";
+
     class Node {
         final String value ;          // String in this node; a null string ("") is a dummy node/
         Node next ;                   // The node following this one.
@@ -34,7 +37,7 @@ public class HPList {
     * and a dummy tail.
     */
     public HPList() {
-        head = new Node("", new Node("", null)) ;
+        head = new Node(DUMMY_NODE_VALUE, new Node(DUMMY_NODE_VALUE, null)) ;
     }
 
     /*
@@ -43,10 +46,36 @@ public class HPList {
     * ascending order of strings.
     */
     public void insert(String s) {
-
-        head.lock.lock();
-        head.next = new Node(s, head.next);
-        head.lock.unlock();
+        Node current = head;
+        while(current.next.value != DUMMY_NODE_VALUE) {
+            boolean dupe = false;
+            try {
+                current.lock.lock();
+                dupe = current.next.value.equals(s); 
+                if(current.next.value.compareTo(s) < 0 && !dupe) {
+                    current.next = new Node(s, current.next);
+                    current.nextChanged.signalAll();
+                } 
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            } finally {             
+                current.lock.unlock();    
+            }
+            if(dupe) break;
+            current = current.next;
+        }
+        
+        //insert at end
+        //todo: fix this copypaste code
+        try {
+            current.lock.lock();
+            current.next = new Node(s, current.next);
+            current.nextChanged.signalAll();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            current.lock.unlock();
+        }
     }
 
     /*
@@ -54,22 +83,28 @@ public class HPList {
     * false. If block is true, will wait until s is inserted and
     * unconditionally return true.
     */
-    public boolean find(String s, boolean block) { 
+    public boolean find(String s, boolean block) {
         
-        Node current = head;
-        while(current.next != null) {
-            if(s.equals(current.value)) return true;
-            current = current.next;
+        Node current = head.next;
+        boolean found = false;
+        while(current.value != DUMMY_NODE_VALUE && !found) {
+
+            try {
+                current.lock.lock();
+                if(current.value.equals(s)) {
+                    found = true;
+                }
+                
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                current.lock.unlock();
+            }
         }
-    
-        if(block) {
-            
-        } else {
-            return false;
-        }
-    
-    
+
+        return found;
     }
+    
     
 }
 
