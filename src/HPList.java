@@ -42,8 +42,11 @@ public class HPList {
     * in the list, otherwise inserts it so as to keep the list in
     * ascending order of strings.
     */
-    public void insert(String s) { 
-    
+    public void insert(String s) {
+
+        head.lock.lock();
+        head.next = new Node(s, head.next);
+        head.lock.unlock();
     }
 
     /*
