@@ -49,8 +49,8 @@ public class HPList {
         Node current = head;
         while(current.next.value != DUMMY_NODE_VALUE) {
             boolean dupe = false;
+            current.lock.lock();
             try {
-                current.lock.lock();
                 dupe = current.next.value.equals(s); 
                 if(current.next.value.compareTo(s) < 0 && !dupe) {
                     current.next = new Node(s, current.next);
@@ -67,8 +67,9 @@ public class HPList {
         
         //insert at end
         //todo: fix this copypaste code
+        current.lock.lock();
         try {
-            current.lock.lock();
+
             current.next = new Node(s, current.next);
             current.nextChanged.signalAll();
         } catch (Exception ex) {
@@ -89,8 +90,8 @@ public class HPList {
         boolean found = false;
         while(current.value != DUMMY_NODE_VALUE && !found) {
 
+            current.lock.lock();
             try {
-                current.lock.lock();
                 if(current.value.equals(s)) {
                     found = true;
                 }
@@ -104,6 +105,8 @@ public class HPList {
 
         return found;
     }
+
+    //todo: block
     
     
 }
