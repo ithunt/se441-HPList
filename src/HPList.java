@@ -1,4 +1,4 @@
-imimport java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -98,11 +98,16 @@ public class HPList {
             try {
                 current.lock.lock();
                 
-                while(current.value.compareTo(current.next.value) < 0 && block == true)
+                while((s.compareTo(current.next.value) < 0 ||
+                		current.next.value == DUMMY_NODE_VALUE) && block == true)
                 	current.nextChanged.wait();
                 
                 if(current.value.equals(s)) {
                     found = true;
+                }
+                else if(s.compareTo(current.next.value) >0){
+                	found = false;
+                	break;
                 }
                 
                 
@@ -111,6 +116,7 @@ public class HPList {
             } finally {
                 current.lock.unlock();
             }
+            current = current.next;
         }
 
         return found;
@@ -118,5 +124,7 @@ public class HPList {
     
     
 }
+
+
 
 
