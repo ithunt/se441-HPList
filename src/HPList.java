@@ -1,9 +1,10 @@
-import java.util.concurrent.locks.Condition;
+imimport java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @author ian hunt
+ * @author Ian Hunt
+ * @author Christoffer Rosen
  * @date 1/9/12
  *
  * High performance, thread safe, singly linked list of Strings.
@@ -11,15 +12,17 @@ import java.util.concurrent.locks.ReentrantLock;
  * the greatest possible concurrency.
  */
 
-@ThreadSafe
+//@ThreadSafe
 public class HPList {
     
     public static final String DUMMY_NODE_VALUE = "";
+    
 
     class Node {
         final String value ;          // String in this node; a null string ("") is a dummy node/
         Node next ;                   // The node following this one.
         final Lock lock ;             // Guards this node ;
+        // CONDITION PREDICATE: The next linked node is not current being accessed.
         final Condition nextChanged ; // Signaled when the next link for this node changes.
 
         Node(String value, Node next) {
@@ -47,6 +50,9 @@ public class HPList {
     */
     public void insert(String s) {
         Node current = head;
+        
+        // While we are not at the end of the linked list, which is shown by arriving at a 
+        // dummy node value.
         while(current.next.value != DUMMY_NODE_VALUE) {
             boolean dupe = false;
             try {
@@ -54,7 +60,7 @@ public class HPList {
                 dupe = current.next.value.equals(s); 
                 if(current.next.value.compareTo(s) < 0 && !dupe) {
                     current.next = new Node(s, current.next);
-                    current.nextChanged.signalAll();
+                    current.nextChanged.signal();
                 } 
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -91,9 +97,14 @@ public class HPList {
 
             try {
                 current.lock.lock();
+                
+                while(current.value.compareTo(current.next.value) < 0 && block == true)
+                	current.nextChanged.wait();
+                
                 if(current.value.equals(s)) {
                     found = true;
                 }
+                
                 
             } catch (Exception ex) {
                 ex.printStackTrace();
