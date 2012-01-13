@@ -98,7 +98,6 @@ public class HPList {
 
             current.lock.lock();
             try {
-                current.lock.lock();
                 
                 while((s.compareTo(current.next.value) < 0 ||
                 		current.next.value == DUMMY_NODE_VALUE) && block == true)
