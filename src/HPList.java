@@ -43,19 +43,24 @@ public class HPList {
         head = new Node(DUMMY_NODE_VALUE, new Node(DUMMY_NODE_VALUE, null)) ;
     }
 
-    /*
+    /**
     * Insert string s into the HPList. Simply returns if s is already
     * in the list, otherwise inserts it so as to keep the list in
     * ascending order of strings.
+    * @param s The string element to insert into the collection
     */
     public void insert(String s) {
+
+        head.lock.lock();
         Node current = head;
         
         // While we are not at the end of the linked list, which is shown by arriving at a 
         // dummy node value.
+        //lock head
+        //lock node and next node -> helper method for overlapping lock/unlocks
         while(current.next.value != DUMMY_NODE_VALUE) {
             boolean dupe = false;
-            current.lock.lock();
+            current.next.lock.lock();
             try {
                 dupe = current.next.value.equals(s); 
                 if(current.next.value.compareTo(s) < 0 && !dupe) {
@@ -91,24 +96,23 @@ public class HPList {
     * unconditionally return true.
     */
     public boolean find(String s, boolean block) {
-        
+
+        head.next.lock.lock();
         Node current = head.next;
         boolean found = false;
         while(current.value != DUMMY_NODE_VALUE && !found) {
-
-            current.lock.lock();
+            current.next.lock.lock();
             try {
-                
-                while((s.compareTo(current.next.value) < 0 ||
-                		current.next.value == DUMMY_NODE_VALUE) && block == true)
-                	current.nextChanged.wait();
                 
                 if(current.value.equals(s)) {
                     found = true;
-                }
-                else if(s.compareTo(current.next.value) >0){
-                	found = false;
-                	break;
+                    break;
+                } else if(s.compareTo(current.next.value) > 0) {
+                    if(block) {
+                        current.nextChanged.await();
+                    } else {
+                        break;
+                    }
                 }
                 
                 
@@ -119,11 +123,19 @@ public class HPList {
             }
             current = current.next;
         }
+        if(current.lock.tryLock())  {
+            current.lock.unlock();
+        }
+        if(current.next.lock.tryLock()) {
+            current.next.lock.unlock();
+        }
 
         return found;
     }
 
     //todo: block
+
+
     
     
 }
