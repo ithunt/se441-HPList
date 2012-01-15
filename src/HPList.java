@@ -51,50 +51,41 @@ public class HPList {
     */
     public void insert(String s) {
 
-        head.lock.lock();
         Node current = head;
-        
-        // While we are not at the end of the linked list, which is shown by arriving at a 
-        // dummy node value.
-        //lock head
-        //lock node and next node -> helper method for overlapping lock/unlocks
-        while(current.next.value != DUMMY_NODE_VALUE) {
-            boolean dupe = false;
-            current.next.lock.lock();
-            try {
-                dupe = current.next.value.equals(s); 
-                if(current.next.value.compareTo(s) < 0 && !dupe) {
-                    current.next = new Node(s, current.next);
-                    current.nextChanged.signal();
-                } 
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            } finally {             
-                current.lock.unlock();    
-            }
-            if(dupe) break;
-            current = current.next;
-        }
-        
-        //insert at end
-        //todo: fix this copypaste code
         current.lock.lock();
         try {
 
-            current.next = new Node(s, current.next);
-            current.nextChanged.signalAll();
-        } catch (Exception ex) {
-            ex.printStackTrace();
+            while(current.next.value != DUMMY_NODE_VALUE) {
+                current.next.lock.lock();
+
+                if(current.next.value.compareTo(s) <= 0) {
+                    break;
+                }
+
+                Node temp = current.next;
+                current.lock.unlock();
+                current = temp;
+            }
+            if(!current.next.value.equals(s)) {
+                current.next = new Node(s, current.next);
+                current.next.next.lock.unlock();
+                current.nextChanged.signal();
+            }
         } finally {
-            current.lock.unlock();
+            if(current.lock.tryLock()) current.lock.unlock();
+            if(current.next.lock.tryLock()) current.next.lock.unlock();
         }
     }
 
-    /*
-    * Returns true if String s is in the HPList, otherwise returns
-    * false. If block is true, will wait until s is inserted and
-    * unconditionally return true.
-    */
+
+    /**
+     * Returns true if String s is in the HPList, otherwise returns
+     * false. If block is true, will wait until s is inserted and
+     * unconditionally return true.
+     * @param s The string you are searching for
+     * @param block block thread until s is inserted
+     * @return true if element is in the list
+     */
     public boolean find(String s, boolean block) {
 
         head.next.lock.lock();
@@ -133,11 +124,6 @@ public class HPList {
         return found;
     }
 
-    //todo: block
-
-
-    
-    
 }
 
 
