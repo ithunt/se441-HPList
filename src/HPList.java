@@ -122,8 +122,28 @@ public class HPList {
 
         return found;
     }
+
+    
+    public void printList(){
+    	
+    	Node current = head.next;
+    
+    	current.lock.lock();
+    	
+    	try{
+    		while(current.value != DUMMY_NODE_VALUE){
+    			current.next.lock.lock();
+    			
+    			System.out.println(current.value);
+    			Node temp = current.next;
+    			current.lock.unlock();
+    			current = temp;
+    		}
+    	}
+    	finally {
+    		if(current.lock.tryLock()) current.lock.unlock();
+    	}
+    
+    		
+    }
 }
-
-
-
-

@@ -4,14 +4,27 @@ public class TestClass {
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		// TODO Auto-generated method stub
 		HPList hpTestList = new HPList();
-		hpTestList.insert("a");
-		hpTestList.insert("b");
-		hpTestList.insert("c");
 		
-		System.out.println("found a?" + hpTestList.find("a",false));
+		WorkerA workerA = new WorkerA("WorkerA", hpTestList);
+		WorkerB workerB = new WorkerB("WorkerB", hpTestList);
+		
+		
+		hpTestList.printList();
+		
+		workerA.run();
+		workerB.run();
+		
+		workerA.join();
+		workerB.join();
+		
+		hpTestList.printList();
+	
+		System.exit(0);
+		
+	
 
 	}
 
