@@ -58,7 +58,7 @@ public class HPList {
             while(current.next.value != DUMMY_NODE_VALUE) {
                 current.next.lock.lock();
 
-                if(current.next.value.compareTo(s) <= 0) {
+                if(current.next.value.compareTo(s) >= 0) {
                     break;
                 }
 
@@ -68,7 +68,7 @@ public class HPList {
             }
             if(!current.next.value.equals(s)) {
                 current.next = new Node(s, current.next);
-                current.next.next.lock.unlock();
+                //current.next.next.lock.unlock(); Why? :S 
                 current.nextChanged.signal();
             }
         } finally {
@@ -122,7 +122,6 @@ public class HPList {
 
         return found;
     }
-
 }
 
 
