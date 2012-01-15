@@ -88,37 +88,36 @@ public class HPList {
      */
     public boolean find(String s, boolean block) {
 
-        head.next.lock.lock();
         Node current = head.next;
+        current.lock.lock();
+
         boolean found = false;
-        while(current.value != DUMMY_NODE_VALUE && !found) {
-            current.next.lock.lock();
-            try {
-                
+        try {
+            while(current.value != DUMMY_NODE_VALUE && !found) {
+                current.next.lock.lock();
+
                 if(current.value.equals(s)) {
                     found = true;
                     break;
                 } else if(s.compareTo(current.next.value) > 0) {
                     if(block) {
-                        current.nextChanged.await();
+                        try {
+                            current.nextChanged.await();
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
                     } else {
                         break;
                     }
                 }
-                
-                
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            } finally {
+
+                Node temp = current.next;
                 current.lock.unlock();
+                current = temp;
             }
-            current = current.next;
-        }
-        if(current.lock.tryLock())  {
-            current.lock.unlock();
-        }
-        if(current.next.lock.tryLock()) {
-            current.next.lock.unlock();
+        } finally {
+            if(current.lock.tryLock()) current.lock.unlock();
+            if(current.next.lock.tryLock()) current.next.lock.unlock();
         }
 
         return found;
