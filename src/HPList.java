@@ -90,39 +90,39 @@ public class HPList {
     public boolean find(String s, boolean block) {
 
         Node current = head.next;
-        
-        //No locking needed, as this is a reader
-        
-        //check if in list
-        while(current.value != DUMMY_NODE_VALUE) { //
-        		System.out.println("Find Checking(1st pass): "+current.value);
+        boolean found = false;
+        current.lock.lock();
+        try {
+            while(current.value != DUMMY_NODE_VALUE && !found) {
+                current.next.lock.lock();
+                
                 if(current.value.equals(s)) {
-                    return true;
-                } 
-                Node temp = current.next;
-                current = temp;
-        }
-        
-        //if blocking, go through again to find position
-        if (block){
-        	current = head;
-        	while(true){
-        		if(current.value.equals(s)) { //just in case it slipped through
-                    return true;
-                }else if(s.compareTo(current.next.value) > 0 || current.next.value == DUMMY_NODE_VALUE) {
-                    try {
-                        current.nextChanged.await();
-                    } catch (InterruptedException ex) {
-                        ex.printStackTrace();
+                    found = true;
+                    break;
+                    
+                } else if (s.compareTo(current.next.value) > 0) {
+                    if(block) {
+                        try {
+                            current.nextChanged.await();
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
+                    } else {
+                        break;
                     }
                 }
-        		current=current.next;
-        	}
-        	
+
+                Node temp = current.next;
+                current.lock.unlock();
+                current = temp;
+            } //end while
+        } finally {
+            if(current.lock.tryLock()) current.lock.unlock();
+            if(current.next.lock.tryLock()) current.next.lock.unlock();
         }
-        
-        //if not blocking and not in list
-        return false;
+        return found;
+
+
         
     }
 
