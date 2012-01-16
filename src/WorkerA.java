@@ -12,6 +12,12 @@ public class WorkerA extends Thread {
 		list.insert("a");
 		list.insert("a");
 		list.insert("b");
+        list.find("y", true);
+        System.out.println("Blocked find on y completed");
+        System.out.println("b exists? " + list.find("b", true));
+        
+        list.insert("b");
+        list.insert("b");
 		list.insert("z");
 		//list.insert("g");
 		//list.insert("j");

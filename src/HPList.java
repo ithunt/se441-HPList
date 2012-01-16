@@ -53,25 +53,24 @@ public class HPList {
     public void insert(String s) {
 
         Node current = head;
+        current.lock.lock();
         try {
-        	current.lock.lock();
-        	
             while(current.next.value != DUMMY_NODE_VALUE &&
                     current.next.value.compareTo(s) < 0) {
 
                 current.next.lock.lock();
-                Node temp = current.next;
+                final Node temp = current.next;
                 current.lock.unlock();
                 current = temp;
             }
+            //Insert if doesn't exist
             if(!current.next.value.equals(s)) {
             	current.next.lock.lock(); 
                 current.next = new Node(s, current.next);
                 current.next.next.lock.unlock();
-                
                 current.nextChanged.signal();
             }
-        }catch (Exception ex){
+        } catch (Exception ex){
         	ex.printStackTrace();
         } finally {
             current.lock.unlock();
@@ -94,10 +93,10 @@ public class HPList {
         try {
             do {
                 while((current.next.value != DUMMY_NODE_VALUE) &&
-                        (current.next.value.compareTo(s) <= 0) ) { //
+                        (current.next.value.compareTo(s) <= 0) ) {
 
                     current.next.lock.lock();
-                    Node temp = current.next;
+                    final Node temp = current.next;
                     current.lock.unlock();
                     current = temp;
                 }
@@ -122,6 +121,7 @@ public class HPList {
 
     /**
      * Prints out the list for debugging purposes
+     * NO LOCKING
      */
     public void printList(){
 
