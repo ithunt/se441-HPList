@@ -12,7 +12,7 @@ public class TestClass {
 		WorkerB workerB = new WorkerB("WorkerB", hpTestList);
 		
 		
-		hpTestList.printList();
+		//hpTestList.printList();
 		
 		workerA.start();  //RUN WON'T WORK, USE START!
 		workerB.start();

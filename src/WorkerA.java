@@ -8,14 +8,13 @@ public class WorkerA extends Thread {
 	}
 	
 	public void run(){
+		//System.out.println("Found U?: "+list.find("u", true));
 		list.insert("a");
 		list.insert("a");
-		//list.find("e", true);
 		list.insert("b");
 		list.insert("z");
-		list.insert("g");
-		//System.out.println("Found U?: "+list.find("u", false));
-		list.insert("j");
+		//list.insert("g");
+		//list.insert("j");
 		
 	}
 

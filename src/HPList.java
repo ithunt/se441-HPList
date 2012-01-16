@@ -17,7 +17,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class HPList {
     
     public static final String DUMMY_NODE_VALUE = "";
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG_INS = true;
+    public static final boolean DEBUG_FND = false;
     
 
     class Node {
@@ -52,48 +53,49 @@ public class HPList {
     * @param s The string element to insert into the collection
     */
     public void insert(String s) {
-    	if (DEBUG) System.out.println("inserting: "+s);
+    	if (DEBUG_INS) System.out.println("inserting: "+s);
         Node current = head;
         try {
         	//get lock
-        	if (DEBUG) System.out.println(s + " is getting a lock on "+current.value);
+        	if (DEBUG_INS) System.out.println(s + " is getting a lock on "+current.value);
         	current.lock.lock();
-        	if (DEBUG) System.out.println(s + " got a lock on "+current.next.value);
+        	if (DEBUG_INS) System.out.println(s + " got a lock on "+current.next.value);
         	
             while(current.next.value != DUMMY_NODE_VALUE) {
             	
-            	if (DEBUG) System.out.println(s + " is getting a lock on "+current.next.value);
+            	if (DEBUG_INS) System.out.println(s + " is getting a lock on "+current.next.value);
                 current.next.lock.lock();
-                if (DEBUG) System.out.println(s + " got a lock on "+current.next.value);
+                if (DEBUG_INS) System.out.println(s + " got a lock on "+current.next.value);
                 
 
                 if(current.next.value.compareTo(s) >= 0) {
-                	if (DEBUG) System.out.println("Next node is too far.");
+                	if (DEBUG_INS) System.out.println("Next node is too far or is same.");
                     break;
                 }
                 
                 
-                if (DEBUG) System.out.println(s + " is trying to unlock "+current.value);
+                if (DEBUG_INS) System.out.println(s + " is trying to unlock "+current.value);
                 current.lock.unlock();
-                if (DEBUG) System.out.println(s + " unlocked "+current.value+" and is incrementing to "+current.next.value);
+                if (DEBUG_INS) System.out.println(s + " unlocked "+current.value+" and is incrementing to "+current.next.value);
                 current = current.next;
             }
             if(!current.next.value.equals(s)) {
+            	current.next.lock.lock(); 
                 current.next = new Node(s, current.next);
-                current.next.next.lock.unlock();
-                if (DEBUG) System.out.println(s + " has been inserted.");
-                current.nextChanged.signal();
+                current.next.next.lock.unlock();  //lock position moved one further due to insert
+                if (DEBUG_INS) System.out.println(s + " has been inserted.");
+                current.nextChanged.signalAll();
             }else{
             	
-            	if (DEBUG) System.out.println(s + " already in HPList");
+            	if (DEBUG_INS) System.out.println(s + " already in HPList");
             	current.next.lock.unlock();
             }
         }catch (Exception e){
-        	System.out.println(e.getMessage());
+        	e.printStackTrace();
         } finally {
-        	if (DEBUG) System.out.println("Releasing all locks");
+        	if (DEBUG_INS) System.out.println("Releasing core lock");
             current.lock.unlock();
-            if (DEBUG) System.out.println("All locks released");
+            if (DEBUG_INS) System.out.println("Core lock released");
         }
     }
 
@@ -138,11 +140,36 @@ public class HPList {
         } finally {
             if(current.lock.tryLock()) current.lock.unlock();
             if(current.next.lock.tryLock()) current.next.lock.unlock();
+
         }
         return found;
 
 
         
+    }
+    
+    /**
+     * Waits for an element to be added before returning true
+     * 
+     * @param current
+     * @return
+     */
+    private boolean waitOnBlocking(Node current, String s){
+    	while (true){
+    		try {
+    			current.lock.lock();
+				current.nextChanged.await();
+				
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+    		if (current.next.value.equals(s)){
+    			return true;
+    		}else if (current.next.value.compareTo(s)<0 && !current.next.value.equals(DUMMY_NODE_VALUE)){
+    			current = current.next;
+    		}
+    	}
+    	
     }
 
     /**
