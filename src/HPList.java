@@ -1,3 +1,4 @@
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,9 +18,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class HPList {
     
     public static final String DUMMY_NODE_VALUE = "";
-    public static final boolean DEBUG_INS = true;
-    public static final boolean DEBUG_FND = false;
-    
 
     class Node {
         final String value ;          // String in this node; a null string ("") is a dummy node/
@@ -53,49 +51,30 @@ public class HPList {
     * @param s The string element to insert into the collection
     */
     public void insert(String s) {
-    	if (DEBUG_INS) System.out.println("inserting: "+s);
+
         Node current = head;
         try {
-        	//get lock
-        	if (DEBUG_INS) System.out.println(s + " is getting a lock on "+current.value);
         	current.lock.lock();
-        	if (DEBUG_INS) System.out.println(s + " got a lock on "+current.next.value);
         	
-            while(current.next.value != DUMMY_NODE_VALUE) {
-            	
-            	if (DEBUG_INS) System.out.println(s + " is getting a lock on "+current.next.value);
-                current.next.lock.lock();
-                if (DEBUG_INS) System.out.println(s + " got a lock on "+current.next.value);
-                
+            while(current.next.value != DUMMY_NODE_VALUE &&
+                    current.next.value.compareTo(s) < 0) {
 
-                if(current.next.value.compareTo(s) >= 0) {
-                	if (DEBUG_INS) System.out.println("Next node is too far or is same.");
-                    break;
-                }
-                
-                
-                if (DEBUG_INS) System.out.println(s + " is trying to unlock "+current.value);
+                current.next.lock.lock();
+                Node temp = current.next;
                 current.lock.unlock();
-                if (DEBUG_INS) System.out.println(s + " unlocked "+current.value+" and is incrementing to "+current.next.value);
-                current = current.next;
+                current = temp;
             }
             if(!current.next.value.equals(s)) {
             	current.next.lock.lock(); 
                 current.next = new Node(s, current.next);
-                current.next.next.lock.unlock();  //lock position moved one further due to insert
-                if (DEBUG_INS) System.out.println(s + " has been inserted.");
-                current.nextChanged.signalAll();
-            }else{
-            	
-            	if (DEBUG_INS) System.out.println(s + " already in HPList");
-            	current.next.lock.unlock();
+                current.next.next.lock.unlock();
+                
+                current.nextChanged.signal();
             }
-        }catch (Exception e){
-        	e.printStackTrace();
+        }catch (Exception ex){
+        	ex.printStackTrace();
         } finally {
-        	if (DEBUG_INS) System.out.println("Releasing core lock");
             current.lock.unlock();
-            if (DEBUG_INS) System.out.println("Core lock released");
         }
     }
 
@@ -109,83 +88,52 @@ public class HPList {
      * @return true if element is in the list
      */
     public boolean find(String s, boolean block) {
-
-        Node current = head.next;
         boolean found = false;
+        Node current = head;
         current.lock.lock();
         try {
-            while(current.value != DUMMY_NODE_VALUE && !found) {
-                current.next.lock.lock();
-                
+            do {
+                while((current.next.value != DUMMY_NODE_VALUE) &&
+                        (current.next.value.compareTo(s) <= 0) ) { //
+
+                    current.next.lock.lock();
+                    Node temp = current.next;
+                    current.lock.unlock();
+                    current = temp;
+                }
                 if(current.value.equals(s)) {
                     found = true;
-                    break;
-                    
-                } else if (s.compareTo(current.next.value) > 0) {
-                    if(block) {
-                        try {
-                            current.nextChanged.await();
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-                    } else {
-                        break;
-                    }
                 }
+                if(!found && block) {
+                    current.nextChanged.await();
+                }
+                
+            } while (!found && block);
 
-                Node temp = current.next;
-                current.lock.unlock();
-                current = temp;
-            } //end while
+        } catch(InterruptedException ex) {
+            ex.printStackTrace();
         } finally {
-            if(current.lock.tryLock()) current.lock.unlock();
-            if(current.next.lock.tryLock()) current.next.lock.unlock();
-
+            current.lock.unlock();
         }
+
         return found;
-
-
-        
     }
-    
-    /**
-     * Waits for an element to be added before returning true
-     * 
-     * @param current
-     * @return
-     */
-    private boolean waitOnBlocking(Node current, String s){
-    	while (true){
-    		try {
-    			current.lock.lock();
-				current.nextChanged.await();
-				
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-    		if (current.next.value.equals(s)){
-    			return true;
-    		}else if (current.next.value.compareTo(s)<0 && !current.next.value.equals(DUMMY_NODE_VALUE)){
-    			current = current.next;
-    		}
-    	}
-    	
-    }
+
 
     /**
      * Prints out the list for debugging purposes
      */
     public void printList(){
-    	
-    	Node current = head.next;
-    	
-    	while(current.value != DUMMY_NODE_VALUE){
-			
-			System.out.println(current.value);
-			current = current.next;
-		}
 
-    
-    		
+        Node current = head.next;
+
+        while(current.value != DUMMY_NODE_VALUE){
+
+            System.out.println(current.value);
+            current = current.next;
+        }
+
+
+
     }
 }
