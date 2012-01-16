@@ -5,6 +5,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * @author Ian Hunt
  * @author Christoffer Rosen
+ * @author Patrick McAfee
  * @date 1/9/12
  *
  * High performance, thread safe, singly linked list of Strings.
@@ -89,41 +90,45 @@ public class HPList {
     public boolean find(String s, boolean block) {
 
         Node current = head.next;
-        current.lock.lock();
-
-        boolean found = false;
-        try {
-            while(current.value != DUMMY_NODE_VALUE && !found) {
-                current.next.lock.lock();
-
+        
+        //No locking needed, as this is a reader
+        
+        //check if in list
+        while(current.value != DUMMY_NODE_VALUE) { //
+        		System.out.println("Find Checking(1st pass): "+current.value);
                 if(current.value.equals(s)) {
-                    found = true;
-                    break;
-                } else if(s.compareTo(current.next.value) > 0) {
-                    if(block) {
-                        try {
-                            current.nextChanged.await();
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-                    } else {
-                        break;
+                    return true;
+                } 
+                Node temp = current.next;
+                current = temp;
+        }
+        
+        //if blocking, go through again to find position
+        if (block){
+        	current = head;
+        	while(true){
+        		if(current.value.equals(s)) { //just in case it slipped through
+                    return true;
+                }else if(s.compareTo(current.next.value) > 0 || current.next.value == DUMMY_NODE_VALUE) {
+                    try {
+                        current.nextChanged.await();
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
                     }
                 }
-
-                Node temp = current.next;
-                current.lock.unlock();
-                current = temp;
-            }
-        } finally {
-            if(current.lock.tryLock()) current.lock.unlock();
-            if(current.next.lock.tryLock()) current.next.lock.unlock();
+        		current=current.next;
+        	}
+        	
         }
-
-        return found;
+        
+        //if not blocking and not in list
+        return false;
+        
     }
 
-    
+    /**
+     * Prints out the list for debugging purposes
+     */
     public void printList(){
     	
     	Node current = head.next;

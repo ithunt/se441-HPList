@@ -13,7 +13,7 @@ private final HPList list;
 		list.insert("u");
 		list.insert("y");
 		list.insert("x");
-		list.find("d", false);
+		//System.out.println("Found D?: "+list.find("d", false));
 		list.insert("d");
 		list.insert("e");
 		//list.find("e", true);

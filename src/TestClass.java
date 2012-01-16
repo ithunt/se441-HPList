@@ -14,8 +14,8 @@ public class TestClass {
 		
 		hpTestList.printList();
 		
-		workerA.run();
-		workerB.run();
+		workerA.start();  //RUN WON'T WORK, USE START!
+		workerB.start();
 		
 		workerA.join();
 		workerB.join();

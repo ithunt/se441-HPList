@@ -9,11 +9,12 @@ public class WorkerA extends Thread {
 	
 	public void run(){
 		list.insert("a");
+		list.insert("a");
+		//list.find("e", true);
 		list.insert("b");
 		list.insert("z");
 		list.insert("g");
-		list.find("d", false);
-		//list.find("e", true);
+		//System.out.println("Found U?: "+list.find("u", false));
 		list.insert("j");
 		
 	}
