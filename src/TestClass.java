@@ -20,6 +20,7 @@ public class TestClass {
 		workerA.join();
 		workerB.join();
 		
+		System.out.println("\nFinal list:");
 		hpTestList.printList();
 	
 		System.exit(0);

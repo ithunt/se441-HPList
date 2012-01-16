@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class HPList {
     
     public static final String DUMMY_NODE_VALUE = "";
+    public static final boolean DEBUG = true;
     
 
     class Node {
@@ -51,30 +52,48 @@ public class HPList {
     * @param s The string element to insert into the collection
     */
     public void insert(String s) {
-
+    	if (DEBUG) System.out.println("inserting: "+s);
         Node current = head;
-        current.lock.lock();
         try {
-
+        	//get lock
+        	if (DEBUG) System.out.println(s + " is getting a lock on "+current.value);
+        	current.lock.lock();
+        	if (DEBUG) System.out.println(s + " got a lock on "+current.next.value);
+        	
             while(current.next.value != DUMMY_NODE_VALUE) {
+            	
+            	if (DEBUG) System.out.println(s + " is getting a lock on "+current.next.value);
                 current.next.lock.lock();
+                if (DEBUG) System.out.println(s + " got a lock on "+current.next.value);
+                
 
                 if(current.next.value.compareTo(s) >= 0) {
+                	if (DEBUG) System.out.println("Next node is too far.");
                     break;
                 }
-
-                Node temp = current.next;
+                
+                
+                if (DEBUG) System.out.println(s + " is trying to unlock "+current.value);
                 current.lock.unlock();
-                current = temp;
+                if (DEBUG) System.out.println(s + " unlocked "+current.value+" and is incrementing to "+current.next.value);
+                current = current.next;
             }
             if(!current.next.value.equals(s)) {
                 current.next = new Node(s, current.next);
-                //current.next.next.lock.unlock(); Why? :S 
+                current.next.next.lock.unlock();
+                if (DEBUG) System.out.println(s + " has been inserted.");
                 current.nextChanged.signal();
+            }else{
+            	
+            	if (DEBUG) System.out.println(s + " already in HPList");
+            	current.next.lock.unlock();
             }
+        }catch (Exception e){
+        	System.out.println(e.getMessage());
         } finally {
-            if(current.lock.tryLock()) current.lock.unlock();
-            if(current.next.lock.tryLock()) current.next.lock.unlock();
+        	if (DEBUG) System.out.println("Releasing all locks");
+            current.lock.unlock();
+            if (DEBUG) System.out.println("All locks released");
         }
     }
 
@@ -132,22 +151,13 @@ public class HPList {
     public void printList(){
     	
     	Node current = head.next;
-    
-    	current.lock.lock();
     	
-    	try{
-    		while(current.value != DUMMY_NODE_VALUE){
-    			current.next.lock.lock();
-    			
-    			System.out.println(current.value);
-    			Node temp = current.next;
-    			current.lock.unlock();
-    			current = temp;
-    		}
-    	}
-    	finally {
-    		if(current.lock.tryLock()) current.lock.unlock();
-    	}
+    	while(current.value != DUMMY_NODE_VALUE){
+			
+			System.out.println(current.value);
+			current = current.next;
+		}
+
     
     		
     }
